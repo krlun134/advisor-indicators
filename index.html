@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Economic dashboard</title>
+<meta name="theme-color" content="#1D3A6B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Economy">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EEF1F4;
+    --surface: #FFFFFF;
+    --ink: #172033;
+    --muted: #5B6677;
+    --rule: #D5DBE3;
+    --soft: #E4E9EF;
+    --accent: #1D3A6B;
+    --accent-ink: #FFFFFF;
+    --up: #0E7A5F;
+    --down: #B4322B;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0F1623; --surface: #172033; --ink: #E8EDF5; --muted: #9AA6B8;
+      --rule: #2A364B; --soft: #1F2B40; --accent: #8DB1F0; --accent-ink: #0F1623;
+      --up: #46C7A1; --down: #F08A82;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.5;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 64px; }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; margin: 0; }
+  h1 { font-size: 2rem; line-height: 1.15; }
+  h2 { font-size: 1.5rem; margin: 40px 0 14px; }
+  h3 { font-size: 1.05rem; margin: 22px 0 8px; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .top { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+  .lede { margin: 6px 0 0; color: var(--muted); max-width: 52ch; }
+  .stamp { margin: 0; text-align: right; font-size: .875rem; color: var(--muted); }
+  .stamp strong { color: var(--ink); font-weight: 600; }
+  .stamp.warn strong { color: var(--down); }
+  .banner { margin: 14px 0 0; padding: 10px 14px; border: 1px solid var(--rule); border-left: 4px solid var(--down);
+    background: var(--surface); border-radius: 4px; font-size: .9rem; }
+
+  .panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+
+  /* S&P 500 hero */
+  .hero { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 0; margin-top: 28px; overflow: hidden; }
+  .hero-text { padding: 22px 24px; border-right: 1px solid var(--rule); }
+  .hero-text h2 { margin: 0 0 4px; font-size: 1.15rem; }
+  .big { font-family: var(--serif); font-size: 3rem; line-height: 1.05; font-variant-numeric: lining-nums tabular-nums; }
+  .sub { color: var(--muted); font-size: .875rem; margin-top: 4px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 20px 0; }
+  .stat .k { display: block; font-size: .8125rem; color: var(--muted); }
+  .stat .v { font-family: var(--serif); font-size: 1.5rem; font-variant-numeric: lining-nums tabular-nums; }
+  .up { color: var(--up); } .down { color: var(--down); }
+  .meter .track { position: relative; height: 10px; background: var(--soft); border-radius: 5px; }
+  .meter .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--down); border-radius: 5px; min-width: 3px; }
+  .meter .tick { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--muted); left: 50%; }
+  .meter .scale { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); margin-top: 6px; }
+  .meter .cap { font-size: .8125rem; color: var(--muted); margin: 0 0 8px; }
+  .hero-chart { padding: 18px 16px 10px; display: flex; align-items: center; }
+  .hero-chart svg { width: 100%; height: auto; display: block; }
+  .ln { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .hi-line { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; }
+  .dot { fill: var(--accent); }
+  .ax { fill: var(--muted); font-size: 12px; font-family: var(--sans); }
+
+  /* Indicator rows */
+  .list { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+  .row { display: grid; grid-template-columns: 1fr 150px 190px; gap: 16px; align-items: baseline; padding: 14px 18px; border-top: 1px solid var(--rule); }
+  .row:first-child { border-top: 0; }
+  .name { font-weight: 600; }
+  .note { display: block; color: var(--muted); font-size: .875rem; font-weight: 400; }
+  .val { font-family: var(--serif); font-size: 1.6rem; text-align: right; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+  .meta { font-size: .8125rem; color: var(--muted); text-align: right; }
+  .meta span { display: block; }
+  .empty { padding: 18px; color: var(--muted); }
+
+  /* Taxes and limits */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  .card { padding: 18px 20px; }
+  .card h3 { margin-top: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: .9375rem; }
+  th, td { text-align: left; padding: 9px 8px 9px 0; border-top: 1px solid var(--rule); vertical-align: top; }
+  th { font-weight: 600; border-top: 0; color: var(--muted); font-size: .8125rem; }
+  td.r, th.r { text-align: right; padding-right: 0; padding-left: 8px; }
+  td.n { font-variant-numeric: tabular-nums; }
+  .seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; margin: 0 0 12px; flex-wrap: wrap; }
+  .seg button { font: inherit; font-size: .875rem; padding: 7px 12px; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--rule); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .fine { color: var(--muted); font-size: .8125rem; margin: 10px 0 0; }
+
+  .state-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .state-pick label { font-weight: 600; }
+  select { font: inherit; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); color: var(--ink); min-width: 240px; }
+  .state-out { margin-top: 16px; display: flex; gap: 22px; align-items: baseline; flex-wrap: wrap; }
+  .state-out .big { font-size: 2.6rem; }
+  .state-out .what { font-weight: 600; }
+
+  footer { margin-top: 40px; color: var(--muted); font-size: .8125rem; max-width: 80ch; }
+  footer p { margin: 0 0 8px; }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-text { border-right: 0; border-bottom: 1px solid var(--rule); }
+    .two { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 700px) {
+    h1 { font-size: 1.6rem; }
+    .stamp { text-align: left; }
+    .row { grid-template-columns: 1fr auto; }
+    .meta { grid-column: 1 / -1; text-align: left; }
+    .big { font-size: 2.4rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Economic dashboard</h1>
+      <p class="lede">Market and rate data refresh each weekday morning. Tax figures are for tax year <span id="taxyear">2026</span>.</p>
+    </div>
+    <p class="stamp" id="stamp">Loading data&hellip;</p>
+  </header>
+  <div id="banner"></div>
+
+  <!-- S&P 500 -->
+  <section class="panel hero" id="sp" aria-label="S&P 500"></section>
+
+  <h2>Interest rates</h2>
+  <div class="list" id="rates"></div>
+
+  <h2>Inflation, jobs and valuation</h2>
+  <div class="list" id="econ"></div>
+
+  <h2>Federal debt and deficit</h2>
+  <div class="list" id="fiscal"></div>
+
+  <h2>Federal income tax brackets</h2>
+  <div class="two">
+    <div class="panel card">
+      <h3>Brackets by filing status</h3>
+      <div class="seg" id="seg" role="group" aria-label="Filing status"></div>
+      <table id="brackets"></table>
+      <p class="fine" id="stdded"></p>
+    </div>
+    <div class="panel card">
+      <h3>Contribution limits</h3>
+      <table id="limits"></table>
+      <p class="fine" id="limitnote"></p>
+    </div>
+  </div>
+
+  <h2>State income tax</h2>
+  <div class="panel card">
+    <div class="state-pick">
+      <label for="state">Choose a state</label>
+      <select id="state"><option value="">Select&hellip;</option></select>
+    </div>
+    <div class="state-out" id="stateout" aria-live="polite"></div>
+    <p class="fine">Top marginal rate shown. Local income taxes are not included. Source: Tax Foundation, rates as of January 1, 2026.</p>
+  </div>
+
+  <footer>
+    <p>Sources: Federal Reserve Bank of St. Louis (FRED) for market, rate, inflation, jobs and federal debt data; multpl.com for the Shiller P/E; IRS for federal tax figures; Tax Foundation for state rates. Mortgage rates are the Freddie Mac weekly survey. CPI inflation is the year-over-year change.</p>
+    <p>For educational purposes only. This is not investment, tax or legal advice.</p>
+  </footer>
+</div>
+
+<script src="static-data.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = window.STATIC;
+  var $ = function (sel) { return document.querySelector(sel); };
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var PRIOR = { d: "prior day", w: "prior week", m: "prior month", q: "prior quarter", a: "prior year" };
+
+  /* ---------- formatting ---------- */
+  function nf(n, d) {
+    if (n == null || isNaN(n)) return "\u2014";
+    d = d == null ? 2 : d;
+    return Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  function pct(n, d) { return n == null ? "\u2014" : nf(n, d) + "%"; }
+  function signed(n, d) {
+    if (n == null || isNaN(n)) return "\u2014";
+    var s = nf(Math.abs(n), d);
+    return (n > 0 ? "+" : n < 0 && Number(s) !== 0 ? "\u2212" : "") + s;
+  }
+  function money(n) { return "$" + Math.round(n).toLocaleString("en-US"); }
+  function when(date, freq) {
+    if (!date) return "";
+    var p = date.split("-").map(Number), y = p[0], m = p[1], d = p[2];
+    if (freq === "m") return MONTHS[m - 1] + " " + y;
+    if (freq === "q") return "Q" + Math.ceil(m / 3) + " " + y;
+    if (freq === "a") return "FY" + y;
+    return MONTHS[m - 1] + " " + d + (y !== new Date().getFullYear() ? ", " + y : "");
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function bpText(v, prev, freq) {
+    if (prev == null) return "";
+    var bp = Math.round((v - prev) * 100);
+    return bp === 0 ? "Unchanged vs " + PRIOR[freq] : signed(bp, 0) + " bp vs " + PRIOR[freq];
+  }
+  function ptsText(v, prev, freq) {
+    if (prev == null) return "";
+    var diff = Math.round((v - prev) * 10) / 10;
+    return diff === 0 ? "Unchanged vs " + PRIOR[freq] : signed(diff, 1) + " pts vs " + PRIOR[freq];
+  }
+
+  function row(name, note, value, change, asof, stale) {
+    return '<div class="row"><div><span class="name">' + esc(name) + '</span>' +
+      (note ? '<span class="note">' + esc(note) + '</span>' : '') + '</div>' +
+      '<div class="val">' + value + '</div>' +
+      '<div class="meta">' + (change ? '<span>' + esc(change) + '</span>' : '') +
+      '<span>' + (asof ? esc(asof) : '') + (stale ? ' (not refreshed)' : '') + '</span></div></div>';
+  }
+  function dash(name, note) { return row(name, note, "\u2014", "", ""); }
+
+  /* ---------- data loading ---------- */
+  function getJSON(url) {
+    return fetch(url + "?t=" + Date.now(), { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error(url + " returned " + r.status);
+      return r.json();
+    });
+  }
+
+  /* ---------- S&P 500 ---------- */
+  function chart(hist, high) {
+    var W = 640, H = 240, pl = 10, pr = 10, pt = 22, pb = 28;
+    var vals = hist.map(function (h) { return h[1]; });
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    var pad = (max - min) * 0.06; min -= pad; max += pad;
+    var x = function (i) { return pl + (W - pl - pr) * i / (hist.length - 1); };
+    var y = function (v) { return pt + (H - pt - pb) * (1 - (v - min) / (max - min)); };
+    var path = hist.map(function (h, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(h[1]).toFixed(1); }).join("");
+    var hiIdx = -1;
+    if (high) hist.forEach(function (h, i) { if (h[0] === high.date) hiIdx = i; });
+    var out = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="S&amp;P 500 daily closing level over the past year">';
+    if (hiIdx >= 0) {
+      var hy = y(hist[hiIdx][1]);
+      out += '<line class="hi-line" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + hy.toFixed(1) + '" y2="' + hy.toFixed(1) + '"/>';
+      out += '<text class="ax" x="' + (W - pr) + '" y="' + (hy - 6).toFixed(1) + '" text-anchor="end">High ' + nf(high.value, 0) + '</text>';
+    }
+    out += '<path class="ln" d="' + path + '"/>';
+    var last = hist.length - 1;
+    out += '<circle class="dot" cx="' + x(last).toFixed(1) + '" cy="' + y(hist[last][1]).toFixed(1) + '" r="4"/>';
+    out += '<text class="ax" x="' + pl + '" y="' + (H - 8) + '">' + when(hist[0][0], "d") + '</text>';
+    out += '<text class="ax" x="' + (W - pr) + '" y="' + (H - 8) + '" text-anchor="end">' + when(hist[last][0], "d") + '</text>';
+    return out + "</svg>";
+  }
+
+  function renderSP(sp) {
+    var el = $("#sp");
+    if (!sp) {
+      el.style.display = "block";
+      el.innerHTML = '<div class="empty">S&amp;P 500 data has not loaded yet.</div>';
+      return;
+    }
+    var dd = sp.drawdown_pct, ytd = sp.ytd_pct;
+    var fill = Math.min(Math.abs(dd || 0), 20) / 20 * 100;
+    var html = '<div class="hero-text">' +
+      '<h2>S&amp;P 500</h2>' +
+      '<div class="big">' + nf(sp.value, 2) + '</div>' +
+      '<div class="sub">Close on ' + when(sp.date, "d") +
+        (sp.day_pct != null ? ' (<span class="' + (sp.day_pct >= 0 ? "up" : "down") + '">' + signed(sp.day_pct, 2) + '%</span> on the day)' : '') +
+        (sp.stale ? ' (not refreshed)' : '') + '</div>' +
+      '<div class="stats">' +
+        '<div class="stat"><span class="k">Year to date</span><span class="v ' + (ytd >= 0 ? "up" : "down") + '">' + signed(ytd, 1) + '%</span></div>' +
+        '<div class="stat"><span class="k">From high</span><span class="v ' + (dd < -0.05 ? "down" : "") + '">' + signed(dd, 1) + '%</span></div>' +
+      '</div>' +
+      '<div class="meter"><p class="cap">Drawdown from the ' + when(sp.high.date, "d") + ' high of ' + nf(sp.high.value, 2) + '</p>' +
+        '<div class="track" role="img" aria-label="Down ' + nf(Math.abs(dd), 1) + '% from the high, on a scale to 20%">' +
+          '<div class="fill" style="width:' + fill.toFixed(1) + '%"></div><span class="tick"></span></div>' +
+        '<div class="scale"><span>At high</span><span>Correction (\u221210%)</span><span>Bear (\u221220%)</span></div></div>' +
+      '</div>' +
+      '<div class="hero-chart">' + (sp.history && sp.history.length > 2 ? chart(sp.history, sp.high) : '') + '</div>';
+    el.innerHTML = html;
+  }
+
+  /* ---------- indicator lists ---------- */
+  function simpleRow(name, note, o, digits, kind) {
+    if (!o) return dash(name, note);
+    var change = kind === "pts" ? ptsText(o.value, o.prev, o.freq) : bpText(o.value, o.prev, o.freq);
+    return row(name, note, pct(o.value, digits), change, when(o.date, o.freq), o.stale);
+  }
+
+  function renderRates(d, man) {
+    var h = "";
+    h += simpleRow("10-year Treasury yield", "Benchmark for mortgage rates and long-term borrowing costs", d.treasury10, 2);
+    if (d.fed_funds) {
+      var f = d.fed_funds;
+      h += row("Fed funds target range", "The overnight rate the Fed sets; it drives savings and loan rates",
+        nf(f.lower, 2) + "\u2013" + nf(f.upper, 2) + "%", "Effective rate " + pct(f.effective, 2), when(f.date, f.freq), f.stale);
+    } else h += dash("Fed funds target range", "The overnight rate the Fed sets; it drives savings and loan rates");
+    h += simpleRow("30-year mortgage rate", "Freddie Mac weekly average for a 30-year fixed loan", d.mortgage30, 2);
+    h += simpleRow("3-month Treasury bill", "A close guide to what money market funds pay", d.tbill3m, 2);
+    if (man && man.rates) {
+      man.rates.forEach(function (r) {
+        if (r.value == null) return;
+        h += row(r.label, r.source || "", pct(r.value, 2), "", man.as_of ? "As of " + when(man.as_of, "d") : "");
+      });
+    }
+    $("#rates").innerHTML = h;
+  }
+
+  function renderEcon(d) {
+    var h = "";
+    h += simpleRow("CPI inflation, headline", "Year-over-year change in prices for all items", d.cpi_headline, 1, "pts");
+    h += simpleRow("CPI inflation, core", "Year-over-year change excluding food and energy", d.cpi_core, 1, "pts");
+    h += simpleRow("Unemployment rate", "Share of the labor force without a job", d.unemployment, 1, "pts");
+    if (d.shiller_pe) {
+      var s = d.shiller_pe;
+      h += row("Shiller P/E ratio", "Price divided by 10-year average inflation-adjusted earnings",
+        nf(s.value, 1), s.mean ? "Long-run average " + nf(s.mean, 1) : "", when(s.date, s.freq), s.stale);
+    } else h += dash("Shiller P/E ratio", "Price divided by 10-year average inflation-adjusted earnings");
+    $("#econ").innerHTML = h;
+  }
+
+  function renderFiscal(d) {
+    var h = "";
+    h += simpleRow("Federal debt as % of GDP", "Total public debt outstanding relative to the size of the economy", d.debt_pct_gdp, 1, "pts");
+    if (d.debt_total_tn) {
+      var t = d.debt_total_tn;
+      h += row("Total federal debt", "Total public debt outstanding",
+        "$" + nf(t.value, 1) + " trillion", t.prev != null ? signed(t.value - t.prev, 2) + " trillion vs prior quarter" : "", when(t.date, t.freq), t.stale);
+    } else h += dash("Total federal debt", "Total public debt outstanding");
+    if (d.deficit_pct_gdp) {
+      var f = d.deficit_pct_gdp, isDef = f.value < 0;
+      h += row(isDef ? "Federal deficit as % of GDP" : "Federal surplus as % of GDP", "Fiscal year budget balance relative to the economy",
+        pct(Math.abs(f.value), 1), f.prev != null ? "Prior year " + (f.prev < 0 ? "deficit " : "surplus ") + pct(Math.abs(f.prev), 1) : "", when(f.date, f.freq), f.stale);
+    } else h += dash("Federal deficit as % of GDP", "Fiscal year budget balance relative to the economy");
+    $("#fiscal").innerHTML = h;
+  }
+
+  /* ---------- header stamp / banner ---------- */
+  function renderStamp(ind) {
+    var stamp = $("#stamp"), banner = $("#banner");
+    if (!ind || !ind.updated_at) {
+      stamp.innerHTML = "<strong>No data yet</strong>";
+      banner.innerHTML = '<p class="banner">The data file is empty. Run the &ldquo;Update economic data&rdquo; workflow in GitHub Actions to fill it.</p>';
+      return;
+    }
+    var when_ = new Date(ind.updated_at);
+    var age = (Date.now() - when_.getTime()) / 86400000;
+    var label = when_.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+    stamp.className = "stamp" + (age > 4 ? " warn" : "");
+    stamp.innerHTML = "Updated <strong>" + esc(label) + "</strong>";
+    var msgs = [];
+    if (age > 4) msgs.push("The data is " + Math.floor(age) + " days old. Check that the daily update workflow is still running.");
+    var failed = Object.keys(ind.errors || {});
+    if (failed.length) msgs.push("These items could not refresh and show their last good values: " + failed.join(", ") + ".");
+    banner.innerHTML = msgs.map(function (m) { return '<p class="banner">' + esc(m) + "</p>"; }).join("");
+  }
+
+  /* ---------- taxes ---------- */
+  var filing = "single";
+  function renderBrackets() {
+    var data = S.brackets[filing], prev = -1, h = '<tr><th>Rate</th><th class="r">Taxable income</th></tr>';
+    data.rows.forEach(function (r) {
+      var lo = prev + 1, text = r[1] == null ? money(lo) + " or more" : money(lo) + " to " + money(r[1]);
+      h += '<tr><td class="n">' + r[0] + '%</td><td class="r n">' + text + "</td></tr>";
+      prev = r[1];
+    });
+    $("#brackets").innerHTML = h;
+    $("#stdded").textContent = "Standard deduction, " + data.label.toLowerCase() + ": " + money(data.standardDeduction) + ".";
+    Array.prototype.forEach.call($("#seg").children, function (b) { b.setAttribute("aria-pressed", String(b.dataset.key === filing)); });
+  }
+  function initTax() {
+    $("#taxyear").textContent = S.taxYear;
+    var seg = $("#seg");
+    Object.keys(S.brackets).forEach(function (k) {
+      var b = document.createElement("button");
+      b.type = "button"; b.dataset.key = k; b.textContent = S.brackets[k].label;
+      b.addEventListener("click", function () { filing = k; renderBrackets(); });
+      seg.appendChild(b);
+    });
+    renderBrackets();
+
+    var lim = '<tr><th>Account</th><th class="r">' + S.taxYear + ' limit</th><th class="r">Catch-up</th></tr>';
+    S.limits.forEach(function (l) {
+      lim += "<tr><td>" + esc(l.name) + '</td><td class="r n">' + esc(l.limit) + '</td><td class="r">' + esc(l.catchup) + "</td></tr>";
+    });
+    $("#limits").innerHTML = lim;
+    $("#limitnote").textContent = S.limitsFootnote || "";
+  }
+
+  function initStates() {
+    var sel = $("#state"), out = $("#stateout");
+    S.states.forEach(function (s, i) {
+      var o = document.createElement("option");
+      o.value = i; o.textContent = s[0]; sel.appendChild(o);
+    });
+    sel.addEventListener("change", function () {
+      if (sel.value === "") { out.innerHTML = ""; return; }
+      var s = S.states[Number(sel.value)], name = s[0], type = s[1], rate = s[2];
+      var kind = type === "none" ? "No tax on wages" : type === "flat" ? "Flat rate on all taxable income" : "Graduated rates, top marginal rate";
+      var note = S.stateNotes[name] || "";
+      out.innerHTML = '<div class="big">' + (type === "none" ? "0%" : nf(rate, rate % 1 === 0 ? 0 : 2) + "%") + "</div>" +
+        '<div><div class="what">' + esc(name) + "</div><div>" + esc(kind) + "</div>" +
+        (note ? '<div class="note">' + esc(note) + "</div>" : "") + "</div>";
+    });
+  }
+
+  /* ---------- go ---------- */
+  initTax();
+  initStates();
+  Promise.allSettled([getJSON("data/indicators.json"), getJSON("data/manual.json")]).then(function (res) {
+    var ind = res[0].status === "fulfilled" ? res[0].value : null;
+    var man = res[1].status === "fulfilled" ? res[1].value : null;
+    var d = ind && ind.updated_at ? ind : {};
+    renderStamp(ind);
+    renderSP(d.sp500);
+    renderRates(d, man);
+    renderEcon(d);
+    renderFiscal(d);
+  });
+})();
+</script>
+</body>
+</html>

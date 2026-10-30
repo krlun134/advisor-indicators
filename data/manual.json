@@ -1,0 +1,8 @@
+{
+  "note": "Edit by hand any time. Rows with a null value are hidden on the dashboard. Rates are percentages, e.g. 4.35 means 4.35%.",
+  "as_of": null,
+  "rates": [
+    { "label": "Top high-yield savings account (APY)", "value": null, "source": "Name the bank or comparison site you checked" },
+    { "label": "Top money market account (APY)", "value": null, "source": "Name the bank or comparison site you checked" }
+  ]
+}

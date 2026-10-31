@@ -1031,7 +1031,7 @@
   "lower": 3.75,
   "upper": 4.0,
   "effective": 3.88,
-  "date": "2026-10-30",
+  "date": "2026-10-31",
   "freq": "d"
  },
  "cpi_headline": {
@@ -1082,7 +1082,7 @@
   "prev": -6.2381,
   "freq": "a"
  },
- "updated_at": "2026-10-30T21:54:23+00:00",
+ "updated_at": "2026-10-31T17:34:34+00:00",
  "errors": {
   "shiller_pe": "Could not find Shiller P/E on multpl.com"
  }

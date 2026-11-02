@@ -1,7 +1,8 @@
 /*
   Figures that change once a year. Update this file each fall when the IRS
   publishes the next year's inflation adjustments (usually October/November),
-  and in January for state rate changes.
+  and in January for state rate changes. When you change figures, also update
+  the matching "Data as of" label in the asOf block below.
 
   Sources
     Federal brackets, standard deduction: IRS Rev. Proc. 2025-32 (tax year 2026)
@@ -10,6 +11,14 @@
 */
 window.STATIC = {
   taxYear: 2026,
+
+  // "Data as of" labels shown under each hand-entered table on the page.
+  // Change these whenever you update the figures below them.
+  asOf: {
+    brackets: { date: "Tax year 2026", source: "IRS Rev. Proc. 2025-32" },
+    limits: { date: "Tax year 2026", source: "IRS Notice 2025-67 and Rev. Proc. 2025-19" },
+    states: { date: "January 1, 2026", source: "Tax Foundation" },
+  },
 
   // Each bracket is [rate %, top of bracket]. null = no upper limit.
   brackets: {

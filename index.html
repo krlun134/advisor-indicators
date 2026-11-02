@@ -161,11 +161,13 @@
       <div class="seg" id="seg" role="group" aria-label="Filing status"></div>
       <table id="brackets"></table>
       <p class="fine" id="stdded"></p>
+      <p class="fine" id="bracketasof"></p>
     </div>
     <div class="panel card">
       <h3>Contribution limits</h3>
       <table id="limits"></table>
       <p class="fine" id="limitnote"></p>
+      <p class="fine" id="limitasof"></p>
     </div>
   </div>
 
@@ -176,7 +178,7 @@
       <select id="state"><option value="">Select&hellip;</option></select>
     </div>
     <div class="state-out" id="stateout" aria-live="polite"></div>
-    <p class="fine">Top marginal rate shown. Local income taxes are not included. Source: Tax Foundation, rates as of January 1, 2026.</p>
+    <p class="fine" id="stateasof"></p>
   </div>
 
   <footer>
@@ -214,6 +216,10 @@
     if (freq === "q") return "Q" + Math.ceil(m / 3) + " " + y;
     if (freq === "a") return "FY" + y;
     return MONTHS[m - 1] + " " + d + (y !== new Date().getFullYear() ? ", " + y : "");
+  }
+  function asOfText(a) {
+    if (!a || !a.date) return "";
+    return "Data as of " + a.date + (a.source ? ". Source: " + a.source + "." : ".");
   }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 
@@ -318,7 +324,8 @@
     if (man && man.rates) {
       man.rates.forEach(function (r) {
         if (r.value == null) return;
-        h += row(r.label, r.source || "", pct(r.value, 2), "", man.as_of ? "As of " + when(man.as_of, "d") : "");
+        var asof = r.as_of || man.as_of;
+        h += row(r.label, r.source || "", pct(r.value, 2), "", asof ? "Data as of " + when(asof, "d") : "Data as of date not entered");
       });
     }
     $("#rates").innerHTML = h;
@@ -403,10 +410,13 @@
     });
     $("#limits").innerHTML = lim;
     $("#limitnote").textContent = S.limitsFootnote || "";
+    $("#bracketasof").textContent = asOfText(S.asOf && S.asOf.brackets);
+    $("#limitasof").textContent = asOfText(S.asOf && S.asOf.limits);
   }
 
   function initStates() {
     var sel = $("#state"), out = $("#stateout");
+    $("#stateasof").textContent = "Top marginal rate shown. Local income taxes are not included. " + asOfText(S.asOf && S.asOf.states);
     S.states.forEach(function (s, i) {
       var o = document.createElement("option");
       o.value = i; o.textContent = s[0]; sel.appendChild(o);

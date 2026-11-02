@@ -19,8 +19,8 @@ A single web page that shows key economic indicators and refreshes itself every 
 
 ## What you update by hand
 
-- **`static-data.js`**: federal brackets, standard deduction, 401(k)/IRA/HSA limits and state tax rates. Update it once a year, when the IRS publishes the next year's numbers (usually October or November), and again in January for state changes.
-- **`data/manual.json`**: optional high-yield savings and money market rates. No reliable free feed exists for "best available" rates, so type in what you want to show. Rows left as `null` are hidden.
+- **`static-data.js`**: federal brackets, standard deduction, 401(k)/IRA/HSA limits and state tax rates. Update it once a year, when the IRS publishes the next year's numbers (usually October or November), and again in January for state changes. Each block has a "Data as of" label and source in the `asOf` section at the top. Update the label whenever you update the figures.
+- **`data/manual.json`**: optional high-yield savings and money market rates. No reliable free feed exists for "best available" rates, so type in what you want to show. Rows left as `null` are hidden. Set `as_of` (YYYY-MM-DD) to the date you checked the rate. To date one row separately, add its own `"as_of"` to that row; it overrides the file-level date.
 
 ## One-time setup (about 15 minutes)
 

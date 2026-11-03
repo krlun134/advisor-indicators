@@ -2,8 +2,11 @@
 """Pull the latest economic indicators and write data/indicators.json.
 
 Sources
-  FRED (St. Louis Fed) API : S&P 500, Treasury yields, Fed funds, CPI,
-                             unemployment, mortgage rates, federal debt/deficit
+  FRED (St. Louis Fed) API : S&P 500, Nasdaq Composite, Treasury yields, Fed
+                             funds, CPI, unemployment, mortgage rates, federal
+                             debt/deficit
+  Yahoo Finance chart feed : Russell 2000, EEM, Euro Stoxx 50 (unofficial feed,
+                             one request per symbol per run)
   multpl.com               : Shiller P/E ratio (page scrape)
 
 Needs one environment variable: FRED_API_KEY (free at fred.stlouisfed.org).
@@ -16,6 +19,8 @@ import json
 import os
 import re
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -72,8 +77,12 @@ def year_ago(date_str):
 
 
 # ------------------------------------------------------------- indicators
-def sp500():
-    rows = fred("SP500", start="2015-01-01")  # oldest -> newest
+def series_summary(rows):
+    """Build the hero-panel numbers for any daily price series.
+
+    rows is [(YYYY-MM-DD, close), ...] oldest -> newest. Returns the latest
+    close, day change, year to date, drawdown from the high in the window and
+    the last 252 closes for the chart."""
     date, value = rows[-1]
     prev_value = rows[-2][1] if len(rows) > 1 else None
     year = date[:4]
@@ -91,6 +100,72 @@ def sp500():
         "high": {"value": high_value, "date": high_date},
         "history": [[d, round(v, 2)] for d, v in rows[-252:]],
     }
+
+
+def sp500():
+    return series_summary(fred("SP500", start="2015-01-01"))  # oldest -> newest
+
+
+def yahoo_rows(symbol, start="2015-01-01"):
+    """Daily closes from Yahoo Finance's unofficial chart feed (price only, not
+    dividend adjusted). Returns [(YYYY-MM-DD, close), ...] oldest -> newest."""
+    p1 = int(datetime.strptime(start, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp())
+    p2 = int(time.time()) + 86400
+    url = ("https://query1.finance.yahoo.com/v8/finance/chart/"
+           + urllib.parse.quote(symbol, safe="")
+           + f"?period1={p1}&period2={p2}&interval=1d&events=history")
+    payload = json.loads(http_get(url))
+    chart = payload.get("chart") or {}
+    if chart.get("error"):
+        raise ValueError(f"Yahoo error for {symbol}: {str(chart['error'])[:120]}")
+    result = (chart.get("result") or [None])[0]
+    if not result or not result.get("timestamp"):
+        raise ValueError(f"Yahoo returned no data for {symbol}")
+    offset = (result.get("meta") or {}).get("gmtoffset", 0) or 0
+    closes = result["indicators"]["quote"][0]["close"]
+    by_date = {}
+    for ts, close in zip(result["timestamp"], closes):
+        if close is None:
+            continue
+        day = datetime.fromtimestamp(ts + offset, tz=timezone.utc).strftime("%Y-%m-%d")
+        by_date[day] = float(close)  # keep the last bar if a day repeats
+    rows = sorted(by_date.items())
+    # The bar for today is still forming (the daily run is mid-session for
+    # Europe and pre-open for the US), so drop it unless the day has ended.
+    now = datetime.now(timezone.utc)
+    if rows and rows[-1][0] == now.strftime("%Y-%m-%d") and now.hour < 22:
+        rows = rows[:-1]
+    if len(rows) < 200:
+        raise ValueError(f"Yahoo returned only {len(rows)} usable closes for {symbol}")
+    age = (now.date() - datetime.strptime(rows[-1][0], "%Y-%m-%d").date()).days
+    if age > 10:
+        raise ValueError(f"Latest Yahoo close for {symbol} is {rows[-1][0]} ({age} days old)")
+    return rows
+
+
+# Stock indexes shown in the swipeable charts, in display order. "measure" and
+# "prefix" only affect labels on the page. The S&P 500 reuses the sp500 job so
+# it is not fetched twice.
+INDEXES = [
+    {"id": "sp500", "name": "S&P 500", "source": "fred", "symbol": "SP500",
+     "note": "Price index, not total return", "prefix": "", "measure": "level"},
+    {"id": "nasdaq", "name": "Nasdaq Composite", "source": "fred", "symbol": "NASDAQCOM",
+     "note": "Price index, not total return", "prefix": "", "measure": "level"},
+    {"id": "russell2000", "name": "Russell 2000", "source": "yahoo", "symbol": "^RUT",
+     "note": "Price index, not total return", "prefix": "", "measure": "level"},
+    {"id": "eem", "name": "iShares MSCI Emerging Markets ETF (EEM)", "source": "yahoo", "symbol": "EEM",
+     "note": "ETF share price in US dollars, not an index; price only", "prefix": "$", "measure": "price"},
+    {"id": "eurostoxx50", "name": "Euro Stoxx 50", "source": "yahoo", "symbol": "^STOXX50E",
+     "note": "Price index, not total return; priced in euros", "prefix": "", "measure": "level"},
+]
+
+
+def index_summary(spec):
+    if spec["source"] == "fred":
+        rows = fred(spec["symbol"], start="2015-01-01")
+    else:
+        rows = yahoo_rows(spec["symbol"])
+    return series_summary(rows)
 
 
 def cpi_yoy(series_id):
@@ -129,19 +204,52 @@ def debt_total():
     return info
 
 
-def shiller_pe():
+def _why(exc):
+    """Short reason for a failed request, so the workflow log shows what went wrong."""
+    if isinstance(exc, urllib.error.HTTPError):
+        return f"HTTP {exc.code}"
+    if isinstance(exc, urllib.error.URLError):
+        return f"network error ({exc.reason})"
+    return str(exc)[:80]
+
+
+def _shiller_main_page():
     html = http_get("https://www.multpl.com/shiller-pe")
     text = re.sub(r"<[^>]+>", " ", html)
     text = re.sub(r"&[a-z#0-9]+;", " ", text)
     m = re.search(r"Current Shiller PE Ratio[^0-9]{0,80}?(\d{1,2}\.\d{1,2})", text)
     if not m:
-        raise ValueError("Could not find Shiller P/E on multpl.com")
+        raise ValueError("value not found on page")
     out = {"value": float(m.group(1)),
            "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "freq": "d"}
     mean = re.search(r"Mean:?\s*(\d{1,2}\.\d{1,2})", text)
     if mean:
         out["mean"] = float(mean.group(1))
     return out
+
+
+def _shiller_table_page():
+    """Backup: the by-year table's first row is the current value and its date."""
+    html = http_get("https://www.multpl.com/shiller-pe/table/by-year")
+    text = re.sub(r"<[^>]+>", " ", html)
+    text = re.sub(r"&[a-z#0-9]+;", " ", text)
+    m = re.search(r"([A-Z][a-z]{2} \d{1,2}, \d{4})\s+(\d{1,2}\.\d{1,2})", text)
+    if not m:
+        raise ValueError("value not found in table")
+    day = datetime.strptime(m.group(1), "%b %d, %Y").strftime("%Y-%m-%d")
+    return {"value": float(m.group(2)), "date": day, "freq": "d"}
+
+
+def shiller_pe():
+    """Shiller P/E from multpl.com: main page first, then the table page. If both
+    fail, the error names each step and its HTTP status."""
+    problems = []
+    for label, fetch in (("main page", _shiller_main_page), ("table page", _shiller_table_page)):
+        try:
+            return fetch()
+        except Exception as exc:
+            problems.append(f"{label}: {_why(exc)}")
+    raise ValueError("multpl.com failed (" + "; ".join(problems) + ")")
 
 
 JOBS = {
@@ -158,6 +266,33 @@ JOBS = {
     "deficit_pct_gdp": lambda: latest_two("FYFSGDA188S", "a"),
     "shiller_pe": shiller_pe,
 }
+
+
+def build_indices(result, errors, previous):
+    """Assemble the indices list for the swipeable charts. Each index runs in its
+    own try/except; a failed one keeps its last good values, flagged stale."""
+    old_by_id = {i.get("id"): i for i in previous.get("indices", []) if isinstance(i, dict)}
+    out = []
+    for spec in INDEXES:
+        meta = {k: spec[k] for k in ("id", "name", "symbol", "note", "prefix", "measure")}
+        try:
+            if spec["id"] == "sp500":
+                if "sp500" not in result:  # its own job failed and had no old value
+                    continue
+                summary = dict(result["sp500"])  # carries stale flag if it was reused
+            else:
+                summary = index_summary(spec)
+                print(f"ok    index_{spec['id']}")
+            out.append({**meta, **summary})
+        except Exception as exc:
+            errors["index_" + spec["id"]] = str(exc)[:200]
+            print(f"FAIL  index_{spec['id']}: {exc}", file=sys.stderr)
+            old = old_by_id.get(spec["id"])
+            if old:
+                old.update(meta)
+                old["stale"] = True
+                out.append(old)
+    return out
 
 
 def main():
@@ -184,14 +319,17 @@ def main():
                 result[name] = old
             print(f"FAIL  {name}: {exc}", file=sys.stderr)
 
-    if len(errors) == len(JOBS):
+    result["indices"] = build_indices(result, errors, previous)
+
+    total = len(JOBS) + len(INDEXES) - 1  # the S&P 500 index reuses the sp500 job
+    if len(errors) >= total:
         print("Every indicator failed; leaving the existing file untouched.", file=sys.stderr)
         return 1
 
     result["updated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     result["errors"] = errors
     OUT.write_text(json.dumps(result, indent=1) + "\n")
-    print(f"Wrote {OUT} ({len(JOBS) - len(errors)}/{len(JOBS)} indicators fresh)")
+    print(f"Wrote {OUT} ({total - len(errors)}/{total} indicators fresh)")
     return 0
 
 

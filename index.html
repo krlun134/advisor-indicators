@@ -73,12 +73,31 @@
   .meter .tick { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--muted); left: 50%; }
   .meter .scale { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); margin-top: 6px; }
   .meter .cap { font-size: .8125rem; color: var(--muted); margin: 0 0 8px; }
+  .hero-text .idx-note { margin: 0 0 14px; }
   .hero-chart { padding: 18px 16px 10px; display: flex; align-items: center; }
   .hero-chart svg { width: 100%; height: auto; display: block; }
   .ln { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
   .hi-line { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; }
   .dot { fill: var(--accent); }
   .ax { fill: var(--muted); font-size: 12px; font-family: var(--sans); }
+
+  /* Swipeable index charts: plain CSS scroll-snap, no library */
+  .carousel { margin-top: 28px; }
+  .carousel .slides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch; border-radius: 6px; }
+  .carousel .slides::-webkit-scrollbar { display: none; }
+  .carousel .hero { flex: 0 0 100%; min-width: 0; margin-top: 0; scroll-snap-align: start; }
+  .car-ctl { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; }
+  .car-btn { font: inherit; font-size: 1.25rem; line-height: 1; width: 36px; height: 36px; padding: 0 0 3px; border: 1px solid var(--rule);
+    border-radius: 50%; background: var(--surface); color: var(--ink); cursor: pointer; }
+  .car-btn:disabled { opacity: .4; cursor: default; }
+  .dots { display: flex; gap: 2px; }
+  .dot-btn { width: 28px; height: 28px; padding: 0; border: 0; background: transparent; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; }
+  .dot-btn::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--rule); }
+  .dot-btn[aria-current="true"]::before { background: var(--accent); }
+  .car-hint { display: none; margin: 6px 0 0; text-align: center; color: var(--muted); font-size: .8125rem; }
+  @media (hover: none) { .car-btn { display: none; } .car-hint { display: block; } }
 
   /* Indicator rows */
   .list { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
@@ -112,6 +131,7 @@
   .state-out { margin-top: 16px; display: flex; gap: 22px; align-items: baseline; flex-wrap: wrap; }
   .state-out .big { font-size: 2.6rem; }
   .state-out .what { font-weight: 600; }
+  .state-brackets { margin-top: 20px; max-width: 520px; }
 
   footer { margin-top: 40px; color: var(--muted); font-size: .8125rem; max-width: 80ch; }
   footer p { margin: 0 0 8px; }
@@ -142,8 +162,8 @@
   </header>
   <div id="banner"></div>
 
-  <!-- S&P 500 -->
-  <section class="panel hero" id="sp" aria-label="S&P 500"></section>
+  <!-- Stock market indexes (swipeable) -->
+  <section class="carousel" id="idx" aria-label="Stock market indexes"></section>
 
   <h2>Interest rates</h2>
   <div class="list" id="rates"></div>
@@ -178,11 +198,16 @@
       <select id="state"><option value="">Select&hellip;</option></select>
     </div>
     <div class="state-out" id="stateout" aria-live="polite"></div>
+    <div class="state-brackets" id="statebrackets" hidden>
+      <h3>Brackets by filing status</h3>
+      <div class="seg" id="stateseg" role="group" aria-label="Filing status for state brackets"></div>
+      <table id="statetable"></table>
+    </div>
     <p class="fine" id="stateasof"></p>
   </div>
 
   <footer>
-    <p>Sources: Federal Reserve Bank of St. Louis (FRED) for market, rate, inflation, jobs and federal debt data; multpl.com for the Shiller P/E; IRS for federal tax figures; Tax Foundation for state rates. Mortgage rates are the Freddie Mac weekly survey. CPI inflation is the year-over-year change.</p>
+    <p>Sources: Federal Reserve Bank of St. Louis (FRED) for the S&amp;P 500, Nasdaq Composite, rate, inflation, jobs and federal debt data; Yahoo Finance for the Russell 2000, EEM and Euro Stoxx 50; multpl.com for the Shiller P/E; IRS for federal tax figures; Tax Foundation and state revenue agencies for state rates and brackets. Mortgage rates are the Freddie Mac weekly survey. CPI inflation is the year-over-year change.</p>
     <p>For educational purposes only. This is not investment, tax or legal advice.</p>
   </footer>
 </div>
@@ -251,8 +276,8 @@
     });
   }
 
-  /* ---------- S&P 500 ---------- */
-  function chart(hist, high) {
+  /* ---------- stock index charts ---------- */
+  function chart(hist, high, label, prefix) {
     var W = 640, H = 240, pl = 10, pr = 10, pt = 22, pb = 28;
     var vals = hist.map(function (h) { return h[1]; });
     var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
@@ -262,11 +287,11 @@
     var path = hist.map(function (h, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(h[1]).toFixed(1); }).join("");
     var hiIdx = -1;
     if (high) hist.forEach(function (h, i) { if (h[0] === high.date) hiIdx = i; });
-    var out = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="S&amp;P 500 daily closing level over the past year">';
+    var out = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label) + ' over the past year">';
     if (hiIdx >= 0) {
       var hy = y(hist[hiIdx][1]);
       out += '<line class="hi-line" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + hy.toFixed(1) + '" y2="' + hy.toFixed(1) + '"/>';
-      out += '<text class="ax" x="' + (W - pr) + '" y="' + (hy - 6).toFixed(1) + '" text-anchor="end">High ' + nf(high.value, 0) + '</text>';
+      out += '<text class="ax" x="' + (W - pr) + '" y="' + (hy - 6).toFixed(1) + '" text-anchor="end">High ' + esc(prefix) + nf(high.value, high.value < 1000 ? 2 : 0) + '</text>';
     }
     out += '<path class="ln" d="' + path + '"/>';
     var last = hist.length - 1;
@@ -276,32 +301,90 @@
     return out + "</svg>";
   }
 
-  function renderSP(sp) {
-    var el = $("#sp");
-    if (!sp) {
-      el.style.display = "block";
-      el.innerHTML = '<div class="empty">S&amp;P 500 data has not loaded yet.</div>';
-      return;
-    }
-    var dd = sp.drawdown_pct, ytd = sp.ytd_pct;
+  function slideHTML(ix) {
+    var pre = ix.prefix || "", dd = ix.drawdown_pct, ytd = ix.ytd_pct;
     var fill = Math.min(Math.abs(dd || 0), 20) / 20 * 100;
-    var html = '<div class="hero-text">' +
-      '<h2>S&amp;P 500</h2>' +
-      '<div class="big">' + nf(sp.value, 2) + '</div>' +
-      '<div class="sub">Close on ' + when(sp.date, "d") +
-        (sp.day_pct != null ? ' (<span class="' + (sp.day_pct >= 0 ? "up" : "down") + '">' + signed(sp.day_pct, 2) + '%</span> on the day)' : '') +
-        (sp.stale ? ' (not refreshed)' : '') + '</div>' +
+    var label = ix.name + " daily closing " + (ix.measure === "price" ? "price" : "level");
+    return '<div class="hero-text">' +
+      '<h2>' + esc(ix.name) + '</h2>' +
+      (ix.note ? '<p class="sub idx-note">' + esc(ix.note) + '</p>' : '') +
+      '<div class="big">' + esc(pre) + nf(ix.value, 2) + '</div>' +
+      '<div class="sub">Close on ' + when(ix.date, "d") +
+        (ix.day_pct != null ? ' (<span class="' + (ix.day_pct >= 0 ? "up" : "down") + '">' + signed(ix.day_pct, 2) + '%</span> on the day)' : '') +
+        (ix.stale ? ' (not refreshed)' : '') + '</div>' +
       '<div class="stats">' +
         '<div class="stat"><span class="k">Year to date</span><span class="v ' + (ytd >= 0 ? "up" : "down") + '">' + signed(ytd, 1) + '%</span></div>' +
         '<div class="stat"><span class="k">From high</span><span class="v ' + (dd < -0.05 ? "down" : "") + '">' + signed(dd, 1) + '%</span></div>' +
       '</div>' +
-      '<div class="meter"><p class="cap">Drawdown from the ' + when(sp.high.date, "d") + ' high of ' + nf(sp.high.value, 2) + '</p>' +
+      '<div class="meter"><p class="cap">Drawdown from the ' + when(ix.high.date, "d") + ' high of ' + esc(pre) + nf(ix.high.value, 2) + '</p>' +
         '<div class="track" role="img" aria-label="Down ' + nf(Math.abs(dd), 1) + '% from the high, on a scale to 20%">' +
           '<div class="fill" style="width:' + fill.toFixed(1) + '%"></div><span class="tick"></span></div>' +
         '<div class="scale"><span>At high</span><span>Correction (\u221210%)</span><span>Bear (\u221220%)</span></div></div>' +
       '</div>' +
-      '<div class="hero-chart">' + (sp.history && sp.history.length > 2 ? chart(sp.history, sp.high) : '') + '</div>';
+      '<div class="hero-chart">' + (ix.history && ix.history.length > 2 ? chart(ix.history, ix.high, label, pre) : '') + '</div>';
+  }
+
+  // Older data files only have the sp500 key; fall back to it so the page never goes blank.
+  function indexList(d) {
+    if (d.indices && d.indices.length) return d.indices;
+    if (d.sp500) return [Object.assign({ id: "sp500", name: "S&P 500", note: "Price index, not total return", measure: "level" }, d.sp500)];
+    return [];
+  }
+
+  function renderIndices(d) {
+    var el = $("#idx"), list = indexList(d), n = list.length;
+    if (!n) {
+      el.innerHTML = '<div class="panel"><div class="empty">Index data has not loaded yet.</div></div>';
+      return;
+    }
+    var html = '<div class="slides" id="slides" tabindex="0" role="region" aria-roledescription="carousel" ' +
+      'aria-label="Stock market indexes. Swipe, or use the arrow keys, to see more.">';
+    list.forEach(function (ix, i) {
+      html += '<article class="panel hero" role="group" aria-roledescription="slide" aria-label="' +
+        esc(ix.name) + ', ' + (i + 1) + ' of ' + n + '">' + slideHTML(ix) + '</article>';
+    });
+    html += '</div>';
+    if (n > 1) {
+      html += '<div class="car-ctl"><button type="button" class="car-btn" id="car-prev" aria-label="Previous index">&#8249;</button>' +
+        '<div class="dots" role="group" aria-label="Choose an index">';
+      list.forEach(function (ix, i) {
+        html += '<button type="button" class="dot-btn" data-i="' + i + '" aria-label="Show ' + esc(ix.name) + '"' +
+          (i === 0 ? ' aria-current="true"' : '') + '></button>';
+      });
+      html += '</div><button type="button" class="car-btn" id="car-next" aria-label="Next index">&#8250;</button></div>' +
+        '<p class="car-hint">Swipe to see more indexes</p>';
+    }
     el.innerHTML = html;
+    if (n > 1) wireCarousel(n);
+  }
+
+  function wireCarousel(n) {
+    var track = $("#slides"), dots = document.querySelectorAll(".dot-btn"), prev = $("#car-prev"), next = $("#car-next"), ticking = false;
+    function at() {
+      if (!track.clientWidth) return 0;  // not laid out yet
+      return Math.max(0, Math.min(n - 1, Math.round(track.scrollLeft / track.clientWidth)));
+    }
+    function sync() {
+      var i = at();
+      Array.prototype.forEach.call(dots, function (b, k) { b.setAttribute("aria-current", String(k === i)); });
+      prev.disabled = i === 0;
+      next.disabled = i === n - 1;
+    }
+    function go(i) {
+      i = Math.max(0, Math.min(n - 1, i));
+      var calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (track.scrollTo) track.scrollTo({ left: i * track.clientWidth, behavior: calm ? "auto" : "smooth" });
+      else track.scrollLeft = i * track.clientWidth;
+    }
+    track.addEventListener("scroll", function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () { ticking = false; sync(); });
+    });
+    prev.addEventListener("click", function () { go(at() - 1); });
+    next.addEventListener("click", function () { go(at() + 1); });
+    Array.prototype.forEach.call(dots, function (b) { b.addEventListener("click", function () { go(Number(b.dataset.i)); }); });
+    sync();
   }
 
   /* ---------- indicator lists ---------- */
@@ -375,21 +458,30 @@
     stamp.innerHTML = "Updated <strong>" + esc(label) + "</strong>";
     var msgs = [];
     if (age > 4) msgs.push("The data is " + Math.floor(age) + " days old. Check that the daily update workflow is still running.");
-    var failed = Object.keys(ind.errors || {});
+    var failed = Object.keys(ind.errors || {}).map(function (k) {
+      if (k.indexOf("index_") !== 0) return k;
+      var hit = (ind.indices || []).filter(function (i) { return "index_" + i.id === k; })[0];
+      return hit ? hit.name : k;
+    });
     if (failed.length) msgs.push("These items could not refresh and show their last good values: " + failed.join(", ") + ".");
     banner.innerHTML = msgs.map(function (m) { return '<p class="banner">' + esc(m) + "</p>"; }).join("");
   }
 
   /* ---------- taxes ---------- */
   var filing = "single";
-  function renderBrackets() {
-    var data = S.brackets[filing], prev = -1, h = '<tr><th>Rate</th><th class="r">Taxable income</th></tr>';
-    data.rows.forEach(function (r) {
+  // Shared by the federal and state bracket tables.
+  function bracketRows(rows) {
+    var prev = -1, h = '<tr><th>Rate</th><th class="r">Taxable income</th></tr>';
+    rows.forEach(function (r) {
       var lo = prev + 1, text = r[1] == null ? money(lo) + " or more" : money(lo) + " to " + money(r[1]);
       h += '<tr><td class="n">' + r[0] + '%</td><td class="r n">' + text + "</td></tr>";
       prev = r[1];
     });
-    $("#brackets").innerHTML = h;
+    return h;
+  }
+  function renderBrackets() {
+    var data = S.brackets[filing];
+    $("#brackets").innerHTML = bracketRows(data.rows);
     $("#stdded").textContent = "Standard deduction, " + data.label.toLowerCase() + ": " + money(data.standardDeduction) + ".";
     Array.prototype.forEach.call($("#seg").children, function (b) { b.setAttribute("aria-pressed", String(b.dataset.key === filing)); });
   }
@@ -414,21 +506,41 @@
     $("#limitasof").textContent = asOfText(S.asOf && S.asOf.limits);
   }
 
+  var stateFiling = "single", stateName = "";
+  function renderStateBrackets() {
+    var box = $("#statebrackets"), b = stateName && S.stateBrackets && S.stateBrackets[stateName];
+    if (!b) { box.hidden = true; return; }
+    var rows = stateFiling === "mfj" && b.mfj && b.mfj !== "same" ? b.mfj : b.single;
+    $("#statetable").innerHTML = bracketRows(rows);
+    Array.prototype.forEach.call($("#stateseg").children, function (btn) { btn.setAttribute("aria-pressed", String(btn.dataset.key === stateFiling)); });
+    box.hidden = false;
+  }
+
   function initStates() {
-    var sel = $("#state"), out = $("#stateout");
-    $("#stateasof").textContent = "Top marginal rate shown. Local income taxes are not included. " + asOfText(S.asOf && S.asOf.states);
+    var sel = $("#state"), out = $("#stateout"), seg = $("#stateseg");
+    $("#stateasof").textContent = "Brackets are shown for single and married filing jointly; head of household is not shown. " +
+      "Deductions, exemptions and credits are not modeled, and local income taxes (for example in New York City, Ohio and Pennsylvania) are not included. " +
+      asOfText(S.asOf && S.asOf.states);
+    ["single", "mfj"].forEach(function (k) {
+      var btn = document.createElement("button");
+      btn.type = "button"; btn.dataset.key = k; btn.textContent = S.brackets[k].label;
+      btn.addEventListener("click", function () { stateFiling = k; renderStateBrackets(); });
+      seg.appendChild(btn);
+    });
     S.states.forEach(function (s, i) {
       var o = document.createElement("option");
       o.value = i; o.textContent = s[0]; sel.appendChild(o);
     });
     sel.addEventListener("change", function () {
-      if (sel.value === "") { out.innerHTML = ""; return; }
+      if (sel.value === "") { out.innerHTML = ""; stateName = ""; renderStateBrackets(); return; }
       var s = S.states[Number(sel.value)], name = s[0], type = s[1], rate = s[2];
       var kind = type === "none" ? "No tax on wages" : type === "flat" ? "Flat rate on all taxable income" : "Graduated rates, top marginal rate";
       var note = S.stateNotes[name] || "";
       out.innerHTML = '<div class="big">' + (type === "none" ? "0%" : nf(rate, rate % 1 === 0 ? 0 : 2) + "%") + "</div>" +
         '<div><div class="what">' + esc(name) + "</div><div>" + esc(kind) + "</div>" +
         (note ? '<div class="note">' + esc(note) + "</div>" : "") + "</div>";
+      stateName = type === "graduated" ? name : "";
+      renderStateBrackets();
     });
   }
 
@@ -440,7 +552,7 @@
     var man = res[1].status === "fulfilled" ? res[1].value : null;
     var d = ind && ind.updated_at ? ind : {};
     renderStamp(ind);
-    renderSP(d.sp500);
+    renderIndices(d);
     renderRates(d, man);
     renderEcon(d);
     renderFiscal(d);

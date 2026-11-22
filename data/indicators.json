@@ -1031,7 +1031,7 @@
   "lower": 3.75,
   "upper": 4.0,
   "effective": 3.88,
-  "date": "2026-11-21",
+  "date": "2026-11-22",
   "freq": "d"
  },
  "cpi_headline": {
@@ -6231,7 +6231,7 @@
    ]
   }
  ],
- "updated_at": "2026-11-21T19:59:32+00:00",
+ "updated_at": "2026-11-22T20:13:55+00:00",
  "errors": {
   "cpi_headline": "No year-ago value to compute CPIAUCNS inflation",
   "cpi_core": "No year-ago value to compute CPILFENS inflation"

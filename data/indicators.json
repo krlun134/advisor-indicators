@@ -1,20 +1,16 @@
 {
  "sp500": {
-  "value": 7175.83,
-  "date": "2026-11-19",
+  "value": 6910.39,
+  "date": "2026-11-20",
   "freq": "d",
-  "day_pct": -2.018124891617956,
-  "ytd_pct": 4.825505806734354,
-  "drawdown_pct": -8.224910569604793,
+  "day_pct": -3.6990842871138185,
+  "ytd_pct": 0.9479219925498494,
+  "drawdown_pct": -11.619748482209202,
   "high": {
    "value": 7818.93,
    "date": "2026-10-06"
   },
   "history": [
-   [
-    "2025-11-19",
-    6642.16
-   ],
    [
     "2025-11-20",
     6538.76
@@ -1018,20 +1014,24 @@
    [
     "2026-11-19",
     7175.83
+   ],
+   [
+    "2026-11-20",
+    6910.39
    ]
   ]
  },
  "treasury10": {
-  "value": 5.04,
-  "date": "2026-11-19",
-  "prev": 5.07,
+  "value": 4.92,
+  "date": "2026-11-20",
+  "prev": 5.04,
   "freq": "d"
  },
  "fed_funds": {
   "lower": 3.75,
   "upper": 4.0,
   "effective": 3.88,
-  "date": "2026-11-22",
+  "date": "2026-11-23",
   "freq": "d"
  },
  "cpi_headline": {
@@ -1061,8 +1061,8 @@
   "freq": "w"
  },
  "tbill3m": {
-  "value": 4.16,
-  "date": "2026-11-19",
+  "value": 4.13,
+  "date": "2026-11-20",
   "prev": 4.16,
   "freq": "d"
  },
@@ -1087,7 +1087,8 @@
  "shiller_pe": {
   "value": 36.44,
   "date": "2026-11-20",
-  "freq": "d"
+  "freq": "d",
+  "stale": true
  },
  "indices": [
   {
@@ -1097,21 +1098,17 @@
    "note": "Price index, not total return",
    "prefix": "",
    "measure": "level",
-   "value": 7175.83,
-   "date": "2026-11-19",
+   "value": 6910.39,
+   "date": "2026-11-20",
    "freq": "d",
-   "day_pct": -2.018124891617956,
-   "ytd_pct": 4.825505806734354,
-   "drawdown_pct": -8.224910569604793,
+   "day_pct": -3.6990842871138185,
+   "ytd_pct": 0.9479219925498494,
+   "drawdown_pct": -11.619748482209202,
    "high": {
     "value": 7818.93,
     "date": "2026-10-06"
    },
    "history": [
-    [
-     "2025-11-19",
-     6642.16
-    ],
     [
      "2025-11-20",
      6538.76
@@ -2115,6 +2112,10 @@
     [
      "2026-11-19",
      7175.83
+    ],
+    [
+     "2026-11-20",
+     6910.39
     ]
    ]
   },
@@ -3153,21 +3154,17 @@
    "note": "Price index, not total return",
    "prefix": "",
    "measure": "level",
-   "value": 2581.7900390625,
-   "date": "2026-11-20",
+   "value": 2669.655029296875,
+   "date": "2026-11-23",
    "freq": "d",
-   "day_pct": -2.761469972730024,
-   "ytd_pct": 4.024325237020254,
-   "drawdown_pct": -15.859298766224217,
+   "day_pct": 3.403258549493837,
+   "ytd_pct": 7.564541979202444,
+   "drawdown_pct": -12.995773157881674,
    "high": {
     "value": 3068.419921875,
     "date": "2026-08-14"
    },
    "history": [
-    [
-     "2025-11-20",
-     2305.11
-    ],
     [
      "2025-11-21",
      2369.59
@@ -4171,6 +4168,10 @@
     [
      "2026-11-20",
      2581.79
+    ],
+    [
+     "2026-11-23",
+     2669.66
     ]
    ]
   },
@@ -4181,21 +4182,17 @@
    "note": "ETF share price in US dollars, not an index; price only",
    "prefix": "$",
    "measure": "price",
-   "value": 53.84000015258789,
-   "date": "2026-11-20",
+   "value": 57.83000183105469,
+   "date": "2026-11-23",
    "freq": "d",
-   "day_pct": -5.127753035087412,
-   "ytd_pct": -1.5902009622436264,
-   "drawdown_pct": -24.39264029659607,
+   "day_pct": 7.410850050443418,
+   "ytd_pct": 5.702801679387215,
+   "drawdown_pct": -18.789492241877415,
    "high": {
     "value": 71.20999908447266,
     "date": "2026-06-22"
    },
    "history": [
-    [
-     "2025-11-20",
-     53.11
-    ],
     [
      "2025-11-21",
      53.1
@@ -5199,6 +5196,10 @@
     [
      "2026-11-20",
      53.84
+    ],
+    [
+     "2026-11-23",
+     57.83
     ]
    ]
   },
@@ -6231,9 +6232,10 @@
    ]
   }
  ],
- "updated_at": "2026-11-22T20:13:55+00:00",
+ "updated_at": "2026-11-24T00:40:06+00:00",
  "errors": {
   "cpi_headline": "No year-ago value to compute CPIAUCNS inflation",
-  "cpi_core": "No year-ago value to compute CPILFENS inflation"
+  "cpi_core": "No year-ago value to compute CPILFENS inflation",
+  "shiller_pe": "multpl.com failed (main page: network error ([Errno 111] Connection refused); table page: network error ([Errno 111] Connection refused))"
  }
 }

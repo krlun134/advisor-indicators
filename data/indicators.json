@@ -1031,7 +1031,7 @@
   "lower": 3.75,
   "upper": 4.0,
   "effective": 3.88,
-  "date": "2026-11-25",
+  "date": "2026-11-26",
   "freq": "d"
  },
  "cpi_headline": {
@@ -2126,21 +2126,17 @@
    "note": "Price index, not total return",
    "prefix": "",
    "measure": "level",
-   "value": 23733.54,
-   "date": "2026-11-24",
+   "value": 23585.8,
+   "date": "2026-11-25",
    "freq": "d",
-   "day_pct": -1.4779016304158343,
-   "ytd_pct": 2.1149221731874057,
-   "drawdown_pct": -14.00857032401216,
+   "day_pct": -0.6224945794011449,
+   "ytd_pct": 1.47926231789961,
+   "drawdown_pct": -14.543862312494726,
    "high": {
     "value": 27599.89,
     "date": "2026-10-06"
    },
    "history": [
-    [
-     "2025-11-24",
-     22872.01
-    ],
     [
      "2025-11-25",
      23025.59
@@ -3144,6 +3140,10 @@
     [
      "2026-11-24",
      23733.54
+    ],
+    [
+     "2026-11-25",
+     23585.8
     ]
    ]
   },
@@ -3154,12 +3154,12 @@
    "note": "Price index, not total return",
    "prefix": "",
    "measure": "level",
-   "value": 2704.06103515625,
+   "value": 2704.06005859375,
    "date": "2026-11-25",
    "freq": "d",
-   "day_pct": 0.7121609483743407,
-   "ytd_pct": 8.950813321748207,
-   "drawdown_pct": -11.874479243248537,
+   "day_pct": 0.7121245765179252,
+   "ytd_pct": 8.950773974530346,
+   "drawdown_pct": -11.874511069482397,
    "high": {
     "value": 3068.419921875,
     "date": "2026-08-14"
@@ -5210,21 +5210,17 @@
    "note": "Price index, not total return; priced in euros",
    "prefix": "",
    "measure": "level",
-   "value": 5894.4599609375,
-   "date": "2026-11-25",
+   "value": 6014.740234375,
+   "date": "2026-11-26",
    "freq": "d",
-   "day_pct": -1.8205226217295478,
-   "ytd_pct": 1.694893265824593,
-   "drawdown_pct": -10.025006523489521,
+   "day_pct": 2.0405647715752595,
+   "ytd_pct": 3.770043432298076,
+   "drawdown_pct": -8.189008503380702,
    "high": {
     "value": 6551.22021484375,
     "date": "2026-08-11"
    },
    "history": [
-    [
-     "2025-11-24",
-     5528.67
-    ],
     [
      "2025-11-25",
      5573.91
@@ -6228,11 +6224,15 @@
     [
      "2026-11-25",
      5894.46
+    ],
+    [
+     "2026-11-26",
+     6014.74
     ]
    ]
   }
  ],
- "updated_at": "2026-11-25T22:15:49+00:00",
+ "updated_at": "2026-11-26T22:11:49+00:00",
  "errors": {
   "cpi_headline": "No year-ago value to compute CPIAUCNS inflation",
   "cpi_core": "No year-ago value to compute CPILFENS inflation",
